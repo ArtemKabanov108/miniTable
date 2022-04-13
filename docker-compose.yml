@@ -1,0 +1,56 @@
+version: "3.7"
+services:
+  nodeclient:
+    container_name: table_client
+    build:
+      context: ./client
+      dockerfile: ./docker/cli/Dockerfile
+    restart: always
+    ports:
+        - "4020:3000"
+    networks:
+      - app-network
+    volumes:
+        - ./client:/var/www/http/client
+    depends_on:
+      - nodeserv
+
+  nodeserv:
+    container_name: nestserv
+    build:
+      context: ./server
+      dockerfile: ./docker/serv/Dockerfile
+    restart: always
+    depends_on:
+        - tasks-postgres
+    ports:
+        - "4010:7010"
+    networks:
+      - app-network
+    links:
+      - tasks-postgres:${DB_HOST}
+    volumes:
+      - ./server:/var/www/http/server
+
+  # please execute this command in your console: docker volume create --name=tasks-postgres
+  tasks-postgres:
+    container_name: tasks-postgres
+    hostname: tasks-postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PORT: ${DB_PORT}
+    env_file:
+      - .env
+    ports:
+      - ${DB_PORT}:5432
+    networks:
+      - app-network
+    volumes:
+      - "./tasks-postgres:/var/lib/postgresql"
+
+#Docker Networks
+networks:
+  app-network:
